@@ -98,6 +98,26 @@ class IntegrationTest extends Specification{
                     .waitingFor(Wait.forListeningPort())
                     )
         }
+
+        if ("kafka" in targets) {
+            def zookeeper = new GenericContainer<>("zookeeper:3.5")
+                    .withNetwork(network)
+                    .withNetworkAliases("zookeeper")
+                    .withStartupTimeout(Duration.ofSeconds(120))
+                    .waitingFor(Wait.forListeningPort())
+            targetContainers.add(zookeeper)
+            targetContainers.add(
+                    new GenericContainer<>("bitnami/kafka:latest")
+                    .withNetwork(network)
+                    .withEnv([ "KAFKA_CFG_ZOOKEEPER_CONNECT" : "zookeeper:2181", "ALLOW_PLAINTEXT_LISTENER" : "yes", "JMX_PORT": "7199"])
+                    .withNetworkAliases("kafka")
+                    .withExposedPorts(7199)
+                    .withStartupTimeout(Duration.ofSeconds(120))
+                    .waitingFor(Wait.forListeningPort())
+                    .dependsOn(zookeeper)
+                    )
+        }
+
         targetContainers.each {
             it.start()
         }
